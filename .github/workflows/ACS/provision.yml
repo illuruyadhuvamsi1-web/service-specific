@@ -1,0 +1,71 @@
+name: Provision Communication Service
+run-name: Communication Service - ${{ github.event.inputs.Service_name }}-${{ github.event.inputs.environment }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      Service_name:
+        description: 'Service Name'
+        required: true
+        type: choice
+        options:
+          - ACS
+
+      environment:
+        description: 'Environment (e.g., dev, staging, prod)'
+        required: true
+
+      resource_name:
+        description: 'Resource Name (e.g., Test)'
+        required: true
+
+      subscription_id:
+        description: 'Azure Subscription ID'
+        required: true
+
+      resource_group_name:
+        description: 'Resource Group Name'
+        required: true
+
+      # ACS-Specific Inputs
+      communication_service_name:
+        description: 'Communication Service Name'
+        required: true
+
+      data_location:
+        description: 'Data Location'
+        required: true
+        type: choice
+        default: United States
+        options:
+          - United States
+          - Europe
+          - Asia Pacific
+          - Australia
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+  # Common TF Variables
+  TF_VAR_subscription_id: ${{ github.event.inputs.subscription_id }}
+  TF_VAR_resource_group_name: ${{ github.event.inputs.resource_group_name }}
+  TF_VAR_environment: ${{ github.event.inputs.environment }}
+  TF_VAR_resource_name: ${{ github.event.inputs.resource_name }}
+
+  # ACS-Specific TF Variables
+  TF_VAR_communication_service_name: ${{ github.event.inputs.communication_service_name }}
+  TF_VAR_data_location: ${{ github.event.inputs.data_location }}
+
+jobs:
+  provision:
+    name: ${{ github.event.inputs.Service_name }} Provision
+    uses: ./.github/workflows/reusable-provision.yml
+    with:
+      working_directory: Communication_Service
+      service_name: ${{ github.event.inputs.Service_name }}
+      terraform_version: '1.6.6'
+      terragrunt_version: '0.54.15'
+    secrets: inherit

@@ -1,0 +1,124 @@
+name: Reusable Service Provision Workflow
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+
+      working_directory:
+        required: true
+        type: string
+
+      terraform_version:
+        required: false
+        default: '1.6.0'
+        type: string
+
+      terragrunt_version:
+        required: false
+        default: '0.54.15'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate ${{ inputs.service_name }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Install Terragrunt
+        run: |
+          curl -Lo /tmp/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ inputs.terragrunt_version }}/terragrunt_linux_amd64
+          chmod +x /tmp/terragrunt
+          sudo mv /tmp/terragrunt /usr/local/bin/terragrunt
+
+      - name: Format & Validate
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          terragrunt hclfmt
+          terragrunt hclfmt --terragrunt-check
+          terragrunt validate
+
+  plan:
+    name: Plan ${{ inputs.service_name }}
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Install Terragrunt
+        run: |
+          curl -Lo /tmp/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ inputs.terragrunt_version }}/terragrunt_linux_amd64
+          chmod +x /tmp/terragrunt
+          sudo mv /tmp/terragrunt /usr/local/bin/terragrunt
+
+      - name: Terragrunt Plan
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          terragrunt run-all plan -out=tfplan --terragrunt-non-interactive
+          mkdir -p plans plan-text
+
+          find . -type f -name tfplan -path "**/.terragrunt-cache/**" | while read plan; do
+            cache_dir=$(dirname "$plan")
+            module=$(echo "$plan" | sed 's#.*/\([^/]*\)/.terragrunt-cache.*#\1#')
+            cp "$plan" "plans/tfplan-${module}"
+            ( cd "$cache_dir" && terraform show -no-color tfplan > "$OLDPWD/plan-text/${module}.txt" )
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-${{ inputs.service_name }}
+          path: |
+            ${{ inputs.working_directory }}/plans
+            ${{ inputs.working_directory }}/plan-text
+          retention-days: 5
+
+  apply:
+    name: Apply ${{ inputs.service_name }}
+    runs-on: ubuntu-latest
+    needs: plan
+    environment: approver
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Install Terragrunt
+        run: |
+          curl -Lo /tmp/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ inputs.terragrunt_version }}/terragrunt_linux_amd64
+          chmod +x /tmp/terragrunt
+          sudo mv /tmp/terragrunt /usr/local/bin/terragrunt
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan-${{ inputs.service_name }}
+          path: ${{ inputs.working_directory }}
+
+      - name: Terragrunt Apply
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          ROOT_DIR=$(pwd)
+          for plan in plans/tfplan-*; do
+            module=$(basename "$plan" | sed 's/tfplan-//')
+            cd "$ROOT_DIR/$module"
+            terragrunt apply -auto-approve "$ROOT_DIR/$plan"
+            cd "$ROOT_DIR"
+          done

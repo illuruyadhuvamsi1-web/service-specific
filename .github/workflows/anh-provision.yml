@@ -60,7 +60,7 @@ env:
 
 jobs:
   provision:
-    uses: ./.github/workflows/reusable-provision-service.yml
+    uses: ./.github/workflows/reusable-service-provision.yml
     with:
       service_name: ANH
       working_directory: terragrunt/ANH

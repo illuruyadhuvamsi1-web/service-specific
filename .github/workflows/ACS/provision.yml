@@ -62,7 +62,7 @@ env:
 jobs:
   provision:
     name: ${{ github.event.inputs.Service_name }} Provision
-    uses: ./.github/workflows/reusable-provision.yml
+    uses: ./.github/workflows/reusable-service-provision.yml
     with:
       working_directory: Communication_Service
       service_name: ${{ github.event.inputs.Service_name }}

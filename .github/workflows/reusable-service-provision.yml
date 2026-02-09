@@ -11,6 +11,18 @@ on:
         required: true
         type: string
 
+      subscription_id:
+        required: true
+        type: string
+
+      resource_group_name:
+        required: true
+        type: string
+
+      location:
+        required: true
+        type: string
+
       terraform_version:
         required: false
         default: '1.6.0'
@@ -24,17 +36,10 @@ on:
 permissions:
   contents: read
 
-
 jobs:
   validate:
     name: Validate ${{ inputs.service_name }}
     runs-on: ubuntu-latest
-    env:
-      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-      ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-      ARM_USE_AZURE_CLI_AUTH: false
 
     steps:
       - uses: actions/checkout@v4
@@ -51,6 +56,16 @@ jobs:
 
       - name: Terragrunt Format & Validate
         working-directory: ${{ inputs.working_directory }}
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_USE_AZURE_CLI_AUTH: false
+
+          TF_VAR_subscription_id: ${{ inputs.subscription_id }}
+          TF_VAR_resource_group_name: ${{ inputs.resource_group_name }}
+          TF_VAR_location: ${{ inputs.location }}
         run: |
           terragrunt hclfmt
           terragrunt hclfmt --terragrunt-check
@@ -82,6 +97,10 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_USE_AZURE_CLI_AUTH: false
+
+          TF_VAR_subscription_id: ${{ inputs.subscription_id }}
+          TF_VAR_resource_group_name: ${{ inputs.resource_group_name }}
+          TF_VAR_location: ${{ inputs.location }}
         run: |
           terragrunt run-all plan -out=tfplan --terragrunt-non-interactive
           mkdir -p plans plan-text
@@ -127,6 +146,16 @@ jobs:
 
       - name: Terragrunt Apply
         working-directory: ${{ inputs.working_directory }}
+        env:
+          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          ARM_USE_AZURE_CLI_AUTH: false
+
+          TF_VAR_subscription_id: ${{ inputs.subscription_id }}
+          TF_VAR_resource_group_name: ${{ inputs.resource_group_name }}
+          TF_VAR_location: ${{ inputs.location }}
         run: |
           ROOT_DIR=$(pwd)
           for plan in plans/tfplan-*; do

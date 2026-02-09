@@ -3,7 +3,7 @@ run-name: Provision ANH
 
 on:
   workflow_dispatch:
-    inputs: 
+    inputs:
       subscription_id:
         required: true
       resource_group_name:
@@ -37,31 +37,15 @@ on:
         options: ["true", "false"]
         default: "false"
 
-env:
-  # Azure Authentication
-  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-  ARM_USE_AZURE_CLI_AUTH: false
-
-  # Terraform variables
-  TF_VAR_subscription_id: ${{ inputs.subscription_id }}
-  TF_VAR_resource_group_name: ${{ inputs.resource_group_name }}
-  TF_VAR_location: ${{ inputs.location }}
-
-  TF_VAR_namespace_name: ${{ inputs.namespace_name }}
-  TF_VAR_hub_name: ${{ inputs.hub_name }}
-  TF_VAR_sku_name: ${{ inputs.sku }}
-  TF_VAR_authorization_rule_name: ${{ inputs.authorization_rule_name }}
-  TF_VAR_listen: ${{ inputs.allow_listen }}
-  TF_VAR_send: ${{ inputs.allow_send }}
-  TF_VAR_manage: ${{ inputs.allow_manage }}
-
 jobs:
   provision:
     uses: ./.github/workflows/reusable-service-provision.yml
     with:
       service_name: ANH
       working_directory: terragrunt/ANH
+
+      subscription_id: ${{ inputs.subscription_id }}
+      resource_group_name: ${{ inputs.resource_group_name }}
+      location: ${{ inputs.location }}
+
     secrets: inherit

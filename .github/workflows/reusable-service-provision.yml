@@ -99,9 +99,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: tfplan-${{ inputs.service_name }}
-          path: |
-            ${{ inputs.working_directory }}/plans
-            ${{ inputs.working_directory }}/plan-text
+          path: ${{ github.workspace }}/tfplan
           retention-days: 5
 
   apply:

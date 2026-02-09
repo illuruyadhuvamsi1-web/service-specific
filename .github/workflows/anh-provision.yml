@@ -15,6 +15,7 @@ on:
         required: true
       hub_name:
         required: true
+
       sku:
         type: choice
         options: [Free, Basic, Standard]
@@ -22,6 +23,7 @@ on:
 
       authorization_rule_name:
         required: true
+
       allow_listen:
         type: choice
         options: ["true", "false"]
@@ -36,11 +38,14 @@ on:
         default: "false"
 
 env:
+  # Azure Authentication
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
   ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
   ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_USE_AZURE_CLI_AUTH: false
 
+  # Terraform variables
   TF_VAR_subscription_id: ${{ inputs.subscription_id }}
   TF_VAR_resource_group_name: ${{ inputs.resource_group_name }}
   TF_VAR_location: ${{ inputs.location }}
@@ -55,7 +60,7 @@ env:
 
 jobs:
   provision:
-    uses: ./.github/workflows/reusable-service-provision.yml
+    uses: ./.github/workflows/reusable-provision-service.yml
     with:
       service_name: ANH
       working_directory: terragrunt/ANH

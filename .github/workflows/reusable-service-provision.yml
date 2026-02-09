@@ -6,6 +6,9 @@ on:
       service_name:
         required: true
         type: string
+      subscription_id:
+        required: true
+        type: string
       working_directory:
         required: true
         type: string
@@ -43,6 +46,8 @@ jobs:
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+          TF_VAR_subscription_id: ${{ inputs.subscription_id }}
+
           ARM_USE_AZURE_CLI_AUTH: false
         run: |
           terragrunt plan --terragrunt-non-interactive

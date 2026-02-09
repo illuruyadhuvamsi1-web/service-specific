@@ -14,6 +14,7 @@ inputs = {
   namespace_name = get_env("TF_VAR_namespace_name", "")
   hub_name       = get_env("TF_VAR_hub_name", "")
   location       = get_env("TF_VAR_location", "")
+  replication_region = "None"
 
   # SKU (from workflow dropdown)
   sku_name       = get_env("TF_VAR_sku_name", "Basic")

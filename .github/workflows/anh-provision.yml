@@ -47,5 +47,12 @@ jobs:
       subscription_id: ${{ inputs.subscription_id }}
       resource_group_name: ${{ inputs.resource_group_name }}
       location: ${{ inputs.location }}
+      TF_VAR_namespace_name: ${{ inputs.namespace_name }}
+      TF_VAR_hub_name: ${{ inputs.hub_name }}
+      TF_VAR_sku_name: ${{ inputs.sku }}
+      TF_VAR_authorization_rule_name: ${{ inputs.authorization_rule_name }}
+      TF_VAR_listen: ${{ inputs.allow_listen }}
+      TF_VAR_send: ${{ inputs.allow_send }}
+      TF_VAR_manage: ${{ inputs.allow_manage }}
 
     secrets: inherit

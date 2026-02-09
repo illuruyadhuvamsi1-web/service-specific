@@ -124,9 +124,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: tfplan-${{ inputs.service_name }}
-          path: ${{ inputs.working_directory }}
+          path: ${{ github.workspace }}
 
       - name: Terragrunt Apply
         working-directory: ${{ inputs.working_directory }}
         run: |
-          terragrunt apply -auto-approve "${GITHUB_WORKSPACE}/tfplan"
+          terragrunt apply -auto-approve "${{ github.workspace }}/tfplan"

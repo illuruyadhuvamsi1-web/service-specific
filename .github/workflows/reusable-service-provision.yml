@@ -92,15 +92,13 @@ jobs:
       - name: Terragrunt Plan
         working-directory: ${{ inputs.working_directory }}
         run: |
-          terragrunt run-all plan -out=tfplan --terragrunt-non-interactive
+          terragrunt plan -out=tfplan --terragrunt-non-interactive
           mkdir -p plans plan-text
 
-          find . -type f -name tfplan -path "**/.terragrunt-cache/**" | while read plan; do
-            cache_dir=$(dirname "$plan")
-            module=$(echo "$plan" | sed 's#.*/\([^/]*\)/.terragrunt-cache.*#\1#')
-            cp "$plan" "plans/tfplan-${module}"
-            ( cd "$cache_dir" && terraform show -no-color tfplan > "$OLDPWD/plan-text/${module}.txt" )
-          done
+          terragrunt plan -out=tfplan --terragrunt-non-interactive
+          mkdir -p plans plan-text
+          cp tfplan plans/tfplan
+          terraform show -no-color tfplan > plan-text/plan.txt
 
       - uses: actions/upload-artifact@v4
         with:
@@ -137,10 +135,4 @@ jobs:
       - name: Terragrunt Apply
         working-directory: ${{ inputs.working_directory }}
         run: |
-          ROOT_DIR=$(pwd)
-          for plan in plans/tfplan-*; do
-            module=$(basename "$plan" | sed 's/tfplan-//')
-            cd "$ROOT_DIR/$module"
-            terragrunt apply -auto-approve "$ROOT_DIR/$plan"
-            cd "$ROOT_DIR"
-          done
+          terragrunt apply -auto-approve plans/tfplan

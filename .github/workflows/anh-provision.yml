@@ -3,7 +3,7 @@ run-name: Provision ANH
 
 on:
   workflow_dispatch:
-    inputs:
+    inputs: 
       subscription_id:
         required: true
       resource_group_name:

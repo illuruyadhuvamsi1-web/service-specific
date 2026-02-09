@@ -4,7 +4,7 @@ include "root" {
 }
 
 terraform {
-  source = "../../../modules/notification_hub"
+  source = "../../modules/notification_hub"
 }
 
 inputs = {

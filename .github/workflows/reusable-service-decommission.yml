@@ -1,0 +1,150 @@
+name: Reusable Service Decommission Workflow
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        required: true
+        type: string
+
+      working_directory:
+        required: true
+        type: string
+
+      subscription_id:
+        required: true
+        type: string
+
+      resource_group_name:
+        required: true
+        type: string
+
+      location:
+        required: true
+        type: string
+
+      terraform_version:
+        required: false
+        default: '1.6.0'
+        type: string
+
+      terragrunt_version:
+        required: false
+        default: '0.54.15'
+        type: string
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_USE_AZURE_CLI_AUTH: false
+
+  TF_VAR_subscription_id: ${{ inputs.subscription_id }}
+  TF_VAR_resource_group_name: ${{ inputs.resource_group_name }}
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate ${{ inputs.service_name }} Destroy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Install Terragrunt
+        run: |
+          curl -Lo /tmp/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ inputs.terragrunt_version }}/terragrunt_linux_amd64
+          chmod +x /tmp/terragrunt
+          sudo mv /tmp/terragrunt /usr/local/bin/terragrunt
+
+      - name: Terragrunt Format & Validate
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          terragrunt hclfmt
+          terragrunt hclfmt --terragrunt-check
+          terragrunt validate
+
+  plan-destroy:
+    name: Plan Destroy ${{ inputs.service_name }}
+    runs-on: ubuntu-latest
+    needs: validate
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Install Terragrunt
+        run: |
+          curl -Lo /tmp/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ inputs.terragrunt_version }}/terragrunt_linux_amd64
+          chmod +x /tmp/terragrunt
+          sudo mv /tmp/terragrunt /usr/local/bin/terragrunt
+
+      - name: Terragrunt Plan Destroy
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          terragrunt run-all plan -destroy -out="${GITHUB_WORKSPACE}/tfplan-destroy" -no-color
+          echo "Destroy plan file saved to workspace:"
+          ls -la ${GITHUB_WORKSPACE}/tfplan-destroy
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tfplan-destroy-${{ inputs.service_name }}
+          path: ${{ github.workspace }}/tfplan-destroy
+          retention-days: 5
+
+      - name: Plan Summary
+        if: always()
+        run: |
+          echo "### 🗑️ Destroy Plan Complete - ${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Service**: ${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Working Directory**: ${{ inputs.working_directory }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **REVIEW CAREFULLY** - This will permanently delete all resources" >> $GITHUB_STEP_SUMMARY
+
+  destroy:
+    name: Destroy ${{ inputs.service_name }}
+    runs-on: ubuntu-latest
+    needs: plan-destroy
+    environment: approver
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ inputs.terraform_version }}
+
+      - name: Install Terragrunt
+        run: |
+          curl -Lo /tmp/terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v${{ inputs.terragrunt_version }}/terragrunt_linux_amd64
+          chmod +x /tmp/terragrunt
+          sudo mv /tmp/terragrunt /usr/local/bin/terragrunt
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tfplan-destroy-${{ inputs.service_name }}
+          path: ${{ github.workspace }}
+
+      - name: Terragrunt Destroy
+        working-directory: ${{ inputs.working_directory }}
+        run: |
+          terragrunt apply -auto-approve "${{ github.workspace }}/tfplan-destroy"
+
+      - name: Destroy Summary
+        if: always()
+        run: |
+          echo "### ✅ Decommission Complete - ${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Service**: ${{ inputs.service_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: Successfully destroyed" >> $GITHUB_STEP_SUMMARY

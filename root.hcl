@@ -3,7 +3,7 @@ remote_state {
   config = {
     resource_group_name  = "rg-app1-dev"
     storage_account_name = "stdevterrapractice12"
-    container_name       = "blobcontainer"
+    container_name       = "test"
     key                  = "${path_relative_to_include()}/terraform.tfstate"
   }
 

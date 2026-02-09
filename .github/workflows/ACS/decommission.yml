@@ -1,0 +1,73 @@
+name: Decommission Communication Service
+run-name: Decommission ACS
+
+on:
+  workflow_dispatch:
+    inputs:
+      subscription_id:
+        description: 'Azure Subscription ID'
+        required: true
+      resource_group_name:
+        description: 'Resource Group Name'
+        required: true
+      location:
+        description: 'Azure Region'
+        required: true
+
+      communication_service_name:
+        description: 'Communication Service Name'
+        required: true
+
+      data_location:
+        description: 'Data Location'
+        required: true
+        type: choice
+        default: United States
+        options:
+          - United States
+          - Europe
+          - Asia Pacific
+          - Australia
+
+      confirm_destroy:
+        description: 'Type DESTROY to confirm decommission'
+        required: true
+        type: string
+
+env:
+  ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+  TF_VAR_subscription_id: ${{ inputs.subscription_id }}
+  TF_VAR_resource_group_name: ${{ inputs.resource_group_name }}
+  TF_VAR_location: ${{ inputs.location }}
+
+  TF_VAR_communication_service_name: ${{ inputs.communication_service_name }}
+  TF_VAR_data_location: ${{ inputs.data_location }}
+
+jobs:
+  confirm:
+    name: Confirm Destruction
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate confirmation
+        run: |
+          if [ "${{ inputs.confirm_destroy }}" != "DESTROY" ]; then
+            echo "❌ You must type DESTROY to proceed"
+            exit 1
+          fi
+          echo "✅ Confirmation accepted"
+
+  decommission:
+    name: Decommission ACS
+    uses: ./.github/workflows/reusable-service-decommission.yml
+    needs: confirm
+    with:
+      service_name: ACS
+      working_directory: terragrunt/ACS
+      subscription_id: ${{ inputs.subscription_id }}
+      resource_group_name: ${{ inputs.resource_group_name }}
+      location: ${{ inputs.location }}
+    secrets: inherit
